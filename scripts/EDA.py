@@ -180,3 +180,54 @@ def detect_outliers(data):
         outliers = numeric_data[(numeric_data[col] < lower_bound) | (numeric_data[col] > upper_bound)]
         print(f"{col}: {len(outliers)} outliers detected.")
         print(f"Outliers range below {lower_bound:.2f} or above {upper_bound:.2f}.\n")
+
+def fill_outliers(data, columns=None):
+ 
+    # Select only numerical columns if no specific columns are provided
+    if columns is None:
+        columns = data.select_dtypes(include='number').columns
+    
+    for col in columns:
+        # Calculate the IQR for each column
+        Q1 = data[col].quantile(0.25)  # 25th percentile (Q1)
+        Q3 = data[col].quantile(0.75)  # 75th percentile (Q3)
+        IQR = Q3 - Q1  # Interquartile Range
+
+        # Calculate the lower and upper bounds for outlier detection
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+
+        # Cap (replace) outliers to the lower and upper bounds
+        data[col] = data[col].apply(lambda x: lower_bound if x < lower_bound else (upper_bound if x > upper_bound else x))
+
+        print(f"Column '{col}': Outliers filled using capping method with lower bound = {lower_bound:.2f} and upper bound = {upper_bound:.2f}.")
+    
+    return data
+
+def create_advanced_aggregate_features(data):
+ 
+    # Ensure the dataset has the necessary columns
+    if 'CustomerId' not in data.columns or 'Amount' not in data.columns or 'ProductCategory' not in data.columns:
+        raise ValueError("Dataset must contain 'CustomerId', 'Amount', and 'ProductCategory' columns")
+
+    # Group by 'CustomerId' and calculate advanced aggregate metrics
+    aggregate_features = data.groupby('CustomerId').agg(
+        Total_Transaction_Amount=('Amount', 'sum'),
+        Average_Transaction_Amount=('Amount', 'mean'),
+        Transaction_Count=('Amount', 'count'),
+        Std_Dev_Transaction_Amount=('Amount', 'std'),
+        Max_Transaction_Amount=('Amount', 'max'),
+        Min_Transaction_Amount=('Amount', 'min'),
+        Median_Transaction_Amount=('Amount', 'median'),
+        Transaction_Amount_Range=('Amount', lambda x: x.max() - x.min()),
+        Skewness_Transaction_Amount=('Amount', 'skew'),
+        Total_Unique_Products=('ProductId', 'nunique'),
+        Total_Unique_Product_Categories=('ProductCategory', 'nunique')
+    ).reset_index()
+
+    # Fill NaN values in Standard Deviation and Skewness with 0 (for customers with a single transaction)
+    aggregate_features['Std_Dev_Transaction_Amount'].fillna(0, inplace=True)
+    aggregate_features['Skewness_Transaction_Amount'].fillna(0, inplace=True)
+
+    print("Advanced aggregate features created successfully for each customer.")
+    return aggregate_features
