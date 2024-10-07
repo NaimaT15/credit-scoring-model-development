@@ -1,9 +1,12 @@
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from xverse.transformer import WOE
+from category_encoders.woe import WOEEncoder
 
 
 def load_dataset(file_path):
@@ -40,7 +43,7 @@ def create_advanced_aggregate_features(data):
 
     print("Advanced aggregate features created successfully for each customer.")
     return aggregate_features
-import pandas as pd
+
 
 def extract_datetime_features(data, timestamp_column='TransactionStartTime'):
 
@@ -127,4 +130,135 @@ def scale_numerical_features(data, method='normalization', columns=None):
     data[columns] = scaler.fit_transform(data[columns])
 
     print(f"Numerical columns scaled using {method}.")
+    return data
+
+
+
+def calculate_iv(df, feature, target):
+    """
+    Calculate the Information Value (IV) for a given feature and target.
+
+    Args:
+    - df (pd.DataFrame): The DataFrame containing the feature and target.
+    - feature (str): The feature for which to calculate IV.
+    - target (str): The target variable.
+
+    Returns:
+    - iv (float): The Information Value for the feature.
+    """
+    lst = []
+    # Calculate the number of events and non-events
+    total_events = df[target].sum()
+    total_non_events = len(df[target]) - total_events
+    
+    for value in df[feature].unique():
+        # Calculate events and non-events for each unique value in the feature
+        events = df[(df[feature] == value) & (df[target] == 1)].shape[0]
+        non_events = df[(df[feature] == value) & (df[target] == 0)].shape[0]
+        
+        # Calculate the proportion of events and non-events
+        prop_events = events / total_events if total_events != 0 else 0
+        prop_non_events = non_events / total_non_events if total_non_events != 0 else 0
+        
+        # Calculate WoE and IV
+        woe = np.log((prop_events + 0.0001) / (prop_non_events + 0.0001))
+        iv = (prop_events - prop_non_events) * woe
+        
+        # Store the results
+        lst.append({'Value': value, 'Events': events, 'Non-Events': non_events,
+                    'PropEvents': prop_events, 'PropNonEvents': prop_non_events,
+                    'WoE': woe, 'IV': iv})
+    
+    # Create a DataFrame to hold the WoE and IV values for each unique value of the feature
+    iv_df = pd.DataFrame(lst)
+    return iv_df['IV'].sum()
+
+def woe_binning(data, target):
+    """
+    Applies WoE binning and calculates Information Value (IV) for each feature.
+    
+    Args:
+    - data (pd.DataFrame): The input DataFrame containing the features.
+    - target (str): The target variable for WoE binning.
+    
+    Returns:
+    - data_woe (pd.DataFrame): DataFrame with transformed features using WoE.
+    - iv_df (pd.DataFrame): DataFrame containing IV values for each feature.
+    """
+    # Step 1: WoE Encoding
+    woe_encoder = WOEEncoder(cols=data.columns.drop([target]))
+    data_woe = woe_encoder.fit_transform(data.drop(target, axis=1), data[target])
+    
+    # Step 2: Calculate IV for Each Feature
+    iv_values = []
+    for feature in data.columns.drop([target]):
+        iv = calculate_iv(data[[feature, target]], feature, target)
+        iv_values.append(iv)
+    
+    # Create a DataFrame to store IV values
+    iv_df = pd.DataFrame({
+        'Feature': data.columns.drop([target]),
+        'IV Value': iv_values
+    })
+    
+    return data_woe, iv_df
+
+
+def calculate_rfms(data, group_by_column):
+    """
+    Calculates RFMS score for each customer based on transaction data.
+    Args:
+    - data (pd.DataFrame): The input dataset containing customer transaction data.
+    - group_by_column (str): Column name to group by (e.g., 'CustomerId').
+
+    Returns:
+    - rfms_df (pd.DataFrame): DataFrame with RFMS scores and default labels.
+    """
+    rfms_df = data.groupby(group_by_column).agg({
+        'TransactionId': 'count',  # Frequency: Number of transactions
+        'TransactionStartTime': 'max',  # Recency: Last transaction date
+        'Amount': 'sum'  # Monetary: Total transaction amount
+    }).reset_index()
+
+    # Normalize the RFMS components
+    rfms_df['Frequency_Score'] = rfms_df['TransactionId'] / rfms_df['TransactionId'].max()
+    rfms_df['Monetary_Score'] = rfms_df['Amount'] / rfms_df['Amount'].max()
+    rfms_df['Recency_Score'] = 1 - ((rfms_df['TransactionStartTime'].max() - rfms_df['TransactionStartTime']).dt.days / 
+                                     (rfms_df['TransactionStartTime'].max() - rfms_df['TransactionStartTime'].min()).days)
+
+    # Combine the RFMS scores into a single score
+    rfms_df['RFMS_Score'] = 0.3 * rfms_df['Recency_Score'] + 0.4 * rfms_df['Frequency_Score'] + 0.3 * rfms_df['Monetary_Score']
+
+    # Define a threshold for good and bad customers
+    rfms_threshold = rfms_df['RFMS_Score'].median()
+    rfms_df['Default_Indicator'] = rfms_df['RFMS_Score'].apply(lambda x: 'Good' if x >= rfms_threshold else 'Bad')
+
+    return rfms_df
+
+def normalize_features(data, columns):
+    """
+    Normalizes specified numerical columns using MinMaxScaler.
+    Args:
+    - data (pd.DataFrame): The dataset containing features to be normalized.
+    - columns (list): List of columns to be normalized.
+
+    Returns:
+    - data (pd.DataFrame): Dataset with normalized columns.
+    """
+    scaler = MinMaxScaler()
+    data[columns] = scaler.fit_transform(data[columns])
+    return data
+
+def standardize_features(data, columns):
+    """
+    Standardizes specified numerical columns using StandardScaler.
+    Args:
+    - data (pd.DataFrame): The dataset containing features to be standardized.
+    - columns (list): List of columns to be standardized.
+
+    Returns:
+    - data (pd.DataFrame): Dataset with standardized columns.
+    """
+    scaler = StandardScaler()
+    data[columns] = scaler.fit_transform(data[columns])
     return data
