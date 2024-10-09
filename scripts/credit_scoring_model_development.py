@@ -7,6 +7,9 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from xverse.transformer import WOE
 from category_encoders.woe import WOEEncoder
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
+
 
 
 def load_dataset(file_path):
