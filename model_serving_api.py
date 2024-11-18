@@ -15,39 +15,14 @@ feature_columns = joblib.load(r"notebooks\feature_columns.pkl")
 
 # Define the input data structure using Pydantic
 class ModelInput(BaseModel):
-    TransactionId: float
-    BatchId: float
-    AccountId: float
-    SubscriptionId: float
     CustomerId: float
-    CountryCode: float
-    ProductId: float
-    Amount: float
-    Value: float
+    TransactionId: float
     TransactionStartTime: float
-    PricingStrategy: float
-    FraudResult: float
-    Transaction_Hour: float
-    Transaction_Day: float
-    Transaction_Month: float
-    Transaction_Year: float
-    Transaction_DayOfWeek: float
-    Transaction_WeekOfYear: float
-    ProviderId_ProviderId_2: float
-    ProviderId_ProviderId_3: float
-    ProviderId_ProviderId_4: float
-    ProviderId_ProviderId_5: float
-    ProviderId_ProviderId_6: float
-    ProductCategory_data_bundles: float
-    ProductCategory_movies: float
-    ProductCategory_other: float
-    ProductCategory_ticket: float
-    ProductCategory_transport: float
-    ProductCategory_tv: float
-    ProductCategory_utility_bill: float
-    ChannelId_ChannelId_2: float
-    ChannelId_ChannelId_3: float
-    ChannelId_ChannelId_5: float
+    Amount: float
+    Frequency_Score: float
+    Monetary_Score: float
+    Recency_Score: float
+    RFMS_Score: float
 
 # Define a function to preprocess and align the input data for model prediction
 def preprocess_data(input_data: ModelInput):
