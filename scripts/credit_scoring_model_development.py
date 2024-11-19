@@ -18,33 +18,50 @@ def load_dataset(file_path):
         raise FileNotFoundError(f"File not found: {file_path}. Please check the path and try again.")
     return pd.read_csv(file_path)
 
-
 def create_advanced_aggregate_features(data):
- 
-    # Ensure the dataset has the necessary columns
-    if 'CustomerId' not in data.columns or 'Amount' not in data.columns or 'ProductCategory' not in data.columns:
-        raise ValueError("Dataset must contain 'CustomerId', 'Amount', and 'ProductCategory' columns")
+    """
+    Create aggregate features for customer transactions.
+    """
+    # Check for the existence of 'ProductId' column
+    has_product_id = 'ProductId' in data.columns
 
-    # Group by 'CustomerId' and calculate advanced aggregate metrics
-    aggregate_features = data.groupby('CustomerId').agg(
-        Total_Transaction_Amount=('Amount', 'sum'),
-        Average_Transaction_Amount=('Amount', 'mean'),
-        Transaction_Count=('Amount', 'count'),
-        Std_Dev_Transaction_Amount=('Amount', 'std'),
-        Max_Transaction_Amount=('Amount', 'max'),
-        Min_Transaction_Amount=('Amount', 'min'),
-        Median_Transaction_Amount=('Amount', 'median'),
-        Transaction_Amount_Range=('Amount', lambda x: x.max() - x.min()),
-        Skewness_Transaction_Amount=('Amount', 'skew'),
-        Total_Unique_Products=('ProductId', 'nunique'),
-        Total_Unique_Product_Categories=('ProductCategory', 'nunique')
-    ).reset_index()
+    # Define aggregation dictionary
+    agg_dict = {
+        'Amount': ['sum', 'mean', 'count', 'std', 'max', 'min', 'median', 'skew'],
+        'ProductCategory': ['nunique']
+    }
+    if has_product_id:
+        agg_dict['ProductId'] = ['nunique']
 
-    # Fill NaN values in Standard Deviation and Skewness with 0 (for customers with a single transaction)
-    aggregate_features['Std_Dev_Transaction_Amount'].fillna(0, inplace=True)
-    aggregate_features['Skewness_Transaction_Amount'].fillna(0, inplace=True)
+    # Perform aggregation
+    aggregate_features = data.groupby('CustomerId').agg(agg_dict)
 
-    print("Advanced aggregate features created successfully for each customer.")
+    # Flatten column multi-index
+    aggregate_features.columns = [
+        f"{col[0]}_{col[1]}".replace('Amount_', '').replace('ProductCategory_', '')
+        for col in aggregate_features.columns
+    ]
+
+    # Rename columns to more user-friendly names
+    column_mapping = {
+        'sum': 'Total_Transaction_Amount',
+        'mean': 'Average_Transaction_Amount',
+        'count': 'Transaction_Count',
+        'std': 'Std_Dev_Transaction_Amount',
+        'max': 'Max_Transaction_Amount',
+        'min': 'Min_Transaction_Amount',
+        'median': 'Median_Transaction_Amount',
+        'skew': 'Skewness_Transaction_Amount',
+        'nunique': 'Total_Unique_Products'
+    }
+    if has_product_id:
+        column_mapping['ProductId_nunique'] = 'Total_Unique_Product_Ids'
+
+    aggregate_features.rename(columns=column_mapping, inplace=True)
+
+    # Reset index for compatibility
+    aggregate_features.reset_index(inplace=True)
+
     return aggregate_features
 
 
