@@ -28,3 +28,5 @@ jobs:
     # Step 4: Deploy to Streamlit Cloud
     - name: Deploy to Streamlit
       run: streamlit deploy --url https://share.streamlit.io/naimat15/https://github.com/NaimaT15/credit-scoring-model-development/ui.py>
+
+
