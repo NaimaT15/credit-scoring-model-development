@@ -1,1 +1,32 @@
+name: Deploy Streamlit App
+
+on:
+  push:
+    branches:
+      - main  # Triggers deployment when changes are pushed to the 'main' branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Check out the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    # Step 4: Deploy to Streamlit Cloud
+    - name: Deploy to Streamlit
+      run: streamlit deploy --url https://share.streamlit.io/naimat15/https://github.com/NaimaT15/credit-scoring-model-development/ui.py>
+
 
