@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 
+
 # Define the FastAPI app
 app = FastAPI()
 
