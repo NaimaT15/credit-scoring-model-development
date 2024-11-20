@@ -84,8 +84,24 @@ if submitted:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🔗 Logistic Regression"):
+            # Define test_data within the button click block
+            test_data = {
+                "CustomerId": 1.0,
+                "TransactionId": 12345.0,
+                "TransactionStartTime": 1620000000.0,
+                "Amount": 100.0,
+                "Frequency_Score": 10.0,
+                "Monetary_Score": 20.0,
+                "Recency_Score": 5.0,
+                "RFMS_Score": 35.0,
+            }
             try:
-                response = requests.post("http://127.0.0.1:8000/predict/logistic_regression/", json=form_data)
+                st.write("Sending request to FastAPI...")  # Debug output
+                response = requests.post("http://127.0.0.1:8000/predict/logistic_regression/", json=test_data)
+                st.write("Request Payload:", test_data)  # Show request payload
+                st.write("Response Status Code:", response.status_code)  # Show response status code
+                st.write("Response Content:", response.text)  # Show response content
+                
                 if response.status_code == 200:
                     prediction = response.json().get("prediction", "No prediction received")
                     st.success(f"🔍 Logistic Regression Prediction: **{prediction}**")
