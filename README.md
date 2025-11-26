@@ -30,9 +30,7 @@ Navigate to `http://127.0.0.1:8000/docs`for Swagger documentation.
 - **Logistic Regression Accuracy:** 97.99%
 - **Random Forest Accuracy:** 99.73%
 
-## Contributing
 
-Contributions are welcome! Please fork this repository and submit a pull request with your changes.
 
 ## Acknowledgements
 - **10 Academy:** For providing the challenge.
@@ -50,3 +48,4 @@ Contributions are welcome! Please create a pull request or issue to suggest impr
 ## Show your support
 
 Give a ⭐️ if this project helped you!
+
